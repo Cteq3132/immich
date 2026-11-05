@@ -108,6 +108,7 @@ const SyncAssetV2Schema = z
     width: z.int().nullable().describe('Asset width'),
     height: z.int().nullable().describe('Asset height'),
     isEdited: z.boolean().describe('Is edited'),
+    isDecoy: z.boolean().optional().describe('Is in the decoy locked folder'),
   })
   .meta({ id: 'SyncAssetV2' });
 

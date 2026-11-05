@@ -68,6 +68,7 @@ interface AssetStatsOptions {
   isFavorite?: boolean;
   isTrashed?: boolean;
   visibility?: AssetVisibility;
+  isDecoy?: boolean;
 }
 
 interface LivePhotoSearchOptions {
@@ -91,6 +92,7 @@ interface AssetBuilderOptions {
   status?: AssetStatus;
   assetType?: AssetType;
   visibility?: AssetVisibility;
+  isDecoy?: boolean;
   withCoordinates?: boolean;
   bbox?: BoundingBox;
 }
@@ -707,7 +709,10 @@ export class AssetRepository {
       .executeTakeFirst();
   }
 
-  getStatistics(ownerId: string, { visibility, isFavorite, isTrashed }: AssetStatsOptions): Promise<AssetStats> {
+  getStatistics(
+    ownerId: string,
+    { visibility, isFavorite, isTrashed, isDecoy }: AssetStatsOptions,
+  ): Promise<AssetStats> {
     return this.db
       .selectFrom('asset')
       .select((eb) => eb.fn.countAll<number>().filterWhere('type', '=', AssetType.Audio).as(AssetType.Audio))
@@ -717,6 +722,7 @@ export class AssetRepository {
       .where('ownerId', '=', asUuid(ownerId))
       .$if(visibility === undefined, withDefaultVisibility)
       .$if(!!visibility, (qb) => qb.where('asset.visibility', '=', visibility!))
+      .$if(visibility === AssetVisibility.Locked, (qb) => qb.where('asset.isDecoy', '=', !!isDecoy))
       .$if(isFavorite !== undefined, (qb) => qb.where('isFavorite', '=', isFavorite!))
       .$if(!!isTrashed, (qb) => qb.where('asset.status', '!=', AssetStatus.Deleted))
       .where('deletedAt', isTrashed ? 'is not' : 'is', null)
@@ -774,6 +780,7 @@ export class AssetRepository {
           })
           .$if(options.visibility === undefined, withDefaultVisibility)
           .$if(!!options.visibility, (qb) => qb.where('asset.visibility', '=', options.visibility!))
+          .$if(options.visibility === AssetVisibility.Locked, (qb) => qb.where('asset.isDecoy', '=', !!options.isDecoy))
           .$if(!!options.albumId, (qb) =>
             qb
               .innerJoin('album_asset', 'asset.id', 'album_asset.assetId')
@@ -854,6 +861,7 @@ export class AssetRepository {
           .where('asset.deletedAt', options.isTrashed ? 'is not' : 'is', null)
           .$if(options.visibility === undefined, withDefaultVisibility)
           .$if(!!options.visibility, (qb) => qb.where('asset.visibility', '=', options.visibility!))
+          .$if(options.visibility === AssetVisibility.Locked, (qb) => qb.where('asset.isDecoy', '=', !!options.isDecoy))
           .$if(!!options.bbox, (qb) => {
             const bbox = options.bbox!;
             const circle = getBoundingCircle(bbox);

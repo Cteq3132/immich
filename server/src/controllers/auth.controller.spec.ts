@@ -230,4 +230,30 @@ describe(AuthController.name, () => {
       );
     });
   });
+
+  describe('PUT /auth/pin-code/decoy', () => {
+    it('should require the decoy PIN code', async () => {
+      const { status, body } = await request(ctx.getHttpServer())
+        .put('/auth/pin-code/decoy')
+        .send({ pinCode: '123456' });
+      expect(status).toEqual(400);
+      expect(body).toEqual(
+        errorDto.validationError([
+          { path: ['decoyPinCode'], message: 'Invalid input: expected string, received undefined' },
+        ]),
+      );
+    });
+
+    it('should reject an invalid decoy PIN code', async () => {
+      const { status, body } = await request(ctx.getHttpServer())
+        .put('/auth/pin-code/decoy')
+        .send({ pinCode: '123456', decoyPinCode: '12345' });
+      expect(status).toEqual(400);
+      expect(body).toEqual(
+        errorDto.validationError([
+          { path: ['decoyPinCode'], message: String.raw`Invalid string: must match pattern /^\d{6}$/` },
+        ]),
+      );
+    });
+  });
 });

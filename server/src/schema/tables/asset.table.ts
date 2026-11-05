@@ -152,4 +152,7 @@ export class AssetTable {
 
   @Column({ type: 'boolean', default: false })
   isEdited!: Generated<boolean>;
+
+  @Column({ type: 'boolean', default: false })
+  isDecoy!: Generated<boolean>;
 }

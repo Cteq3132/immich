@@ -362,6 +362,7 @@ describe(AssetService.name, () => {
       expect(mocks.asset.update).toHaveBeenCalledWith({
         id: motionAsset.id,
         visibility: asset.visibility,
+        isDecoy: false,
       });
       expect(mocks.event.emit).toHaveBeenCalledWith('AssetShow', {
         assetId: motionAsset.id,
@@ -397,6 +398,7 @@ describe(AssetService.name, () => {
 
       expect(mocks.asset.updateAll).toHaveBeenCalledWith(['asset-1', 'asset-2'], {
         visibility: AssetVisibility.Archive,
+        isDecoy: false,
       });
     });
 
@@ -411,6 +413,7 @@ describe(AssetService.name, () => {
 
       expect(mocks.asset.updateAll).toHaveBeenCalledWith([asset1.id, asset2.id], {
         visibility: AssetVisibility.Archive,
+        isDecoy: false,
       });
       expect(mocks.job.queueAll).not.toHaveBeenCalled();
       expect(mocks.websocket.clientSend).toHaveBeenCalledTimes(2);

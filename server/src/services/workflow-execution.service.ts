@@ -461,6 +461,7 @@ export class WorkflowExecutionService extends BaseService {
               session: {
                 id: DummyValue.UUID,
                 hasElevatedPermission: true,
+                isDecoy: false,
               },
             } as AuthDto,
             result.changes,

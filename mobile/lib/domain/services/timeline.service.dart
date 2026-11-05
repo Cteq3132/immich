@@ -68,7 +68,8 @@ class TimelineFactory {
 
   TimelineService archive(String userId) => TimelineService(_timelineRepository.archived(userId, groupBy));
 
-  TimelineService lockedFolder(String userId) => TimelineService(_timelineRepository.locked(userId, groupBy));
+  TimelineService lockedFolder(String userId, bool isDecoy) =>
+      TimelineService(_timelineRepository.locked(userId, isDecoy, groupBy));
 
   TimelineService video(String userId) => TimelineService(_timelineRepository.video(userId, groupBy));
 

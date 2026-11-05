@@ -39,6 +39,9 @@ export class UserTable {
   @Column({ nullable: true })
   pinCode!: string | null;
 
+  @Column({ nullable: true })
+  decoyPinCode!: string | null;
+
   @CreateDateColumn()
   createdAt!: Generated<Timestamp>;
 

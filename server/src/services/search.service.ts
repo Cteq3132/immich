@@ -106,6 +106,7 @@ export class SearchService extends BaseService {
         visibility: dto.visibility ?? (auth.session?.hasElevatedPermission ? undefined : 'not-locked'),
         userIds,
         viewingUserId: auth.user.id,
+        isDecoy: auth.session?.isDecoy,
         orderDirection: dto.order ?? AssetOrder.Desc,
       },
     );
@@ -128,6 +129,7 @@ export class SearchService extends BaseService {
       visibility: dto.visibility ?? (auth.session?.hasElevatedPermission ? undefined : 'not-locked'),
       userIds,
       viewingUserId: auth.user.id,
+      isDecoy: auth.session?.isDecoy,
     });
   }
 
@@ -146,6 +148,7 @@ export class SearchService extends BaseService {
       visibility: dto.visibility ?? (auth.session?.hasElevatedPermission ? undefined : 'not-locked'),
       userIds,
       viewingUserId: auth.user.id,
+      isDecoy: auth.session?.isDecoy,
     });
     return items.map((item) => mapAsset(item, { auth }));
   }
@@ -161,6 +164,7 @@ export class SearchService extends BaseService {
       visibility: dto.visibility ?? (auth.session?.hasElevatedPermission ? undefined : 'not-locked'),
       userIds,
       viewingUserId: auth.user.id,
+      isDecoy: auth.session?.isDecoy,
     });
     return items.map((item) => mapAsset(item, { auth }));
   }
@@ -189,6 +193,7 @@ export class SearchService extends BaseService {
         ...dto,
         userIds: await userIds,
         viewingUserId: auth.user.id,
+        isDecoy: auth.session?.isDecoy,
         embedding,
         visibility: dto.visibility ?? (auth.session?.hasElevatedPermission ? undefined : 'not-locked'),
       },
@@ -319,7 +324,15 @@ export class SearchService extends BaseService {
       albumIds.length > 0 ? this.requireAccess({ auth, ids: albumIds, permission: Permission.AlbumRead }) : undefined,
     ]);
 
-    return { filter: effectiveFilter, scope: { userIds, lockedOwnerId: auth.user.id, viewingUserId: auth.user.id } };
+    return {
+      filter: effectiveFilter,
+      scope: {
+        userIds,
+        lockedOwnerId: auth.user.id,
+        lockedIsDecoy: auth.session?.isDecoy,
+        viewingUserId: auth.user.id,
+      },
+    };
   }
 
   private async resolveEmbedding(

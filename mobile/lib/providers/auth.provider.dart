@@ -224,4 +224,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<void> setupPinCode(String pinCode) {
     return _authService.setupPinCode(pinCode);
   }
+
+  Future<bool> isDecoySession() {
+    return _authService.isDecoySession();
+  }
 }
+
+final lockedFolderIsDecoyProvider = FutureProvider.autoDispose<bool>(
+  (ref) => ref.read(authProvider.notifier).isDecoySession(),
+);

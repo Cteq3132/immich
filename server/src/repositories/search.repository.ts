@@ -132,14 +132,20 @@ type BaseAssetSearchOptions = SearchDateOptions &
   SearchAlbumOptions &
   SearchOcrOptions;
 
+export interface SearchLockedOptions {
+  isDecoy?: boolean;
+}
+
 export type AssetSearchOptions = Omit<BaseAssetSearchOptions, 'visibility'> &
-  SearchRelationOptions & { visibility?: AssetVisibility | 'not-locked' };
+  SearchRelationOptions &
+  SearchLockedOptions & { visibility?: AssetVisibility | 'not-locked' };
 
 export type AssetSearchBuilderOptions = Omit<AssetSearchOptions, 'orderDirection'>;
 
 export interface AssetSearchScope {
   userIds: string[];
   lockedOwnerId: string;
+  lockedIsDecoy?: boolean;
   /** whose version of the people to select, required when selecting faces or people */
   viewingUserId?: string;
 }
@@ -161,7 +167,8 @@ export type SmartSearchOptions = SearchDateOptions &
   SearchUserIdOptions &
   SearchPeopleOptions &
   SearchTagOptions &
-  SearchOcrOptions & { visibility?: AssetVisibility | 'not-locked'; viewingUserId?: string };
+  SearchOcrOptions &
+  SearchLockedOptions & { visibility?: AssetVisibility | 'not-locked'; viewingUserId?: string };
 
 export type LargeAssetSearchOptions = AssetSearchOptions & { minFileSize?: number };
 

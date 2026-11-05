@@ -60,7 +60,7 @@ export class AssetService extends BaseService {
       requireElevatedPermission(auth);
     }
 
-    const stats = await this.assetRepository.getStatistics(auth.user.id, dto);
+    const stats = await this.assetRepository.getStatistics(auth.user.id, { ...dto, isDecoy: auth.session?.isDecoy });
     return mapStats(stats);
   }
 
@@ -102,13 +102,14 @@ export class AssetService extends BaseService {
 
     const wroteMetadata = await this.updateExif({ id, description, dateTimeOriginal, latitude, longitude, rating });
 
-    const asset = await this.assetRepository.update({ id, ...rest });
+    const asset = await this.assetRepository.update({ id, ...rest, ...this.getDecoyUpdate(auth, rest.visibility) });
 
     if (previousMotion && asset) {
       await onAfterUnlink(repos, {
         userId: auth.user.id,
         livePhotoVideoId: previousMotion.id,
         visibility: asset.visibility,
+        isDecoy: asset.isDecoy,
       });
     }
 
@@ -139,7 +140,10 @@ export class AssetService extends BaseService {
     } = dto;
     await this.requireAccess({ auth, permission: Permission.AssetUpdate, ids });
 
-    const assetDto = omitBy({ isFavorite, visibility, duplicateId }, isUndefined);
+    const assetDto = omitBy(
+      { isFavorite, visibility, duplicateId, ...this.getDecoyUpdate(auth, visibility) },
+      isUndefined,
+    );
     const exifDto = omitBy(
       {
         latitude,
@@ -184,6 +188,14 @@ export class AssetService extends BaseService {
         this.websocketRepository.clientSend('on_asset_update', auth.user.id, mapAsset(asset, { auth }));
       }
     }
+  }
+
+  private getDecoyUpdate(auth: AuthDto, visibility?: AssetVisibility) {
+    if (visibility === undefined) {
+      return {};
+    }
+
+    return { isDecoy: visibility === AssetVisibility.Locked && !!auth.session?.isDecoy };
   }
 
   async copy(

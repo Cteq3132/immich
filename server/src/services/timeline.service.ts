@@ -41,7 +41,7 @@ export class TimelineService extends BaseService {
       }
     }
 
-    return { ...options, userIds };
+    return { ...options, userIds, isDecoy: auth.session?.isDecoy };
   }
 
   private async timeBucketChecks(auth: AuthDto, dto: TimeBucketDto) {

@@ -1,12 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { sql, type Kysely, type NotNull } from 'kysely';
 import { InjectKysely } from 'nestjs-kysely';
+import { AuthSession } from 'src/database.js';
 import { ChunkedSet, DummyValue, GenerateSql } from 'src/decorators.js';
 import { PersonUserRole } from 'src/dtos/person.dto.js';
 import { AlbumUserRole, AssetVisibility } from 'src/enum.js';
 import { PersonId } from 'src/repositories/person.repository.js';
 import { DB } from 'src/schema/index.js';
-import { asUuid } from 'src/utils/database.js';
+import { asUuid, withLockedAccess } from 'src/utils/database.js';
 
 class ActivityAccess {
   constructor(private db: Kysely<DB>) {}
@@ -186,7 +187,7 @@ class AssetAccess {
 
   @GenerateSql({ params: [DummyValue.UUID, DummyValue.UUID_SET] })
   @ChunkedSet({ paramIndex: 1 })
-  async checkOwnerAccess(userId: string, assetIds: Set<string>, hasElevatedPermission: boolean | undefined) {
+  async checkOwnerAccess(userId: string, assetIds: Set<string>, session: AuthSession | undefined) {
     if (assetIds.size === 0) {
       return new Set<string>();
     }
@@ -196,7 +197,7 @@ class AssetAccess {
       .select('asset.id')
       .where('asset.id', 'in', [...assetIds])
       .where('asset.ownerId', '=', userId)
-      .$if(!hasElevatedPermission, (eb) => eb.where('asset.visibility', '!=', AssetVisibility.Locked))
+      .where((eb) => withLockedAccess(eb, session))
       .execute()
       .then((assets) => new Set(assets.map((asset) => asset.id)));
   }
@@ -295,7 +296,7 @@ class AssetFileAccess {
 
   @GenerateSql({ params: [DummyValue.UUID, DummyValue.UUID_SET] })
   @ChunkedSet({ paramIndex: 1 })
-  async checkOwnerAccess(userId: string, fileIds: Set<string>, hasElevatedPermission: boolean | undefined) {
+  async checkOwnerAccess(userId: string, fileIds: Set<string>, session: AuthSession | undefined) {
     if (fileIds.size === 0) {
       return new Set<string>();
     }
@@ -304,7 +305,7 @@ class AssetFileAccess {
       .selectFrom('asset_file')
       .select('asset_file.id')
       .innerJoin('asset', 'asset.id', 'asset_file.assetId')
-      .$if(!hasElevatedPermission, (eb) => eb.where('asset.visibility', '!=', AssetVisibility.Locked))
+      .where((eb) => withLockedAccess(eb, session))
       .where('asset.ownerId', '=', userId)
       .where('asset_file.id', 'in', [...fileIds])
       .execute()

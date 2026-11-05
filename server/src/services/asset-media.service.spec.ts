@@ -479,7 +479,11 @@ describe(AssetMediaService.name, () => {
         auth.sharedLink!.id,
         new Set([motionAsset.id]),
       );
-      expect(mocks.access.asset.checkOwnerAccess).toHaveBeenCalledWith(auth.user.id, new Set([motionAsset.id]), false);
+      expect(mocks.access.asset.checkOwnerAccess).toHaveBeenCalledWith(
+        auth.user.id,
+        new Set([motionAsset.id]),
+        undefined,
+      );
       expect(mocks.asset.getById).toHaveBeenCalledWith(motionAsset.id);
       expect(mocks.asset.update).toHaveBeenCalledWith({ id: motionAsset.id, visibility: AssetVisibility.Hidden });
       expect(mocks.asset.create).toHaveBeenCalledWith(expect.objectContaining({ livePhotoVideoId: motionAsset.id }));

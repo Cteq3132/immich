@@ -146,7 +146,7 @@ export class AssetMediaService extends BaseService {
           const ids = new Set([dto.livePhotoVideoId]);
           const [assetIds1, assetIds2] = await Promise.all([
             this.accessRepository.asset.checkSharedLinkAccess(auth.sharedLink.id, ids),
-            this.accessRepository.asset.checkOwnerAccess(auth.user.id, ids, false),
+            this.accessRepository.asset.checkOwnerAccess(auth.user.id, ids, undefined),
           ]);
 
           if (!assetIds1.intersection(assetIds2).has(dto.livePhotoVideoId)) {
@@ -177,6 +177,7 @@ export class AssetMediaService extends BaseService {
         isFavorite: dto.isFavorite,
         duration: dto.duration || null,
         visibility: dto.visibility ?? AssetVisibility.Timeline,
+        isDecoy: dto.visibility === AssetVisibility.Locked && !!auth.session?.isDecoy,
         livePhotoVideoId: dto.livePhotoVideoId,
         originalFileName: dto.filename || file.originalName,
       });

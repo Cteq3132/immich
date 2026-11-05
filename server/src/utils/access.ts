@@ -168,7 +168,7 @@ const checkOtherAccess = async (access: AccessRepository, request: OtherAccessRe
     }
 
     case Permission.AssetRead: {
-      const isOwner = await access.asset.checkOwnerAccess(auth.user.id, ids, auth.session?.hasElevatedPermission);
+      const isOwner = await access.asset.checkOwnerAccess(auth.user.id, ids, auth.session);
       const isAlbum = await access.asset.checkAlbumAccess(auth.user.id, ids.difference(isOwner));
       const isPartner = await access.asset.checkPartnerAccess(
         auth.user.id,
@@ -178,7 +178,7 @@ const checkOtherAccess = async (access: AccessRepository, request: OtherAccessRe
     }
 
     case Permission.AssetShare: {
-      const isOwner = await access.asset.checkOwnerAccess(auth.user.id, ids, false);
+      const isOwner = await access.asset.checkOwnerAccess(auth.user.id, ids, undefined);
       const isAlbum = await access.asset.checkAlbumAccess(auth.user.id, ids.difference(isOwner));
       const isPartner = await access.asset.checkPartnerAccess(
         auth.user.id,
@@ -188,11 +188,11 @@ const checkOtherAccess = async (access: AccessRepository, request: OtherAccessRe
     }
 
     case Permission.AssetFileDownload: {
-      return access.assetFile.checkOwnerAccess(auth.user.id, ids, auth.session?.hasElevatedPermission);
+      return access.assetFile.checkOwnerAccess(auth.user.id, ids, auth.session);
     }
 
     case Permission.AssetView: {
-      const isOwner = await access.asset.checkOwnerAccess(auth.user.id, ids, auth.session?.hasElevatedPermission);
+      const isOwner = await access.asset.checkOwnerAccess(auth.user.id, ids, auth.session);
       const isAlbum = await access.asset.checkAlbumAccess(auth.user.id, ids.difference(isOwner));
       const isPartner = await access.asset.checkPartnerAccess(
         auth.user.id,
@@ -202,7 +202,7 @@ const checkOtherAccess = async (access: AccessRepository, request: OtherAccessRe
     }
 
     case Permission.AssetDownload: {
-      const isOwner = await access.asset.checkOwnerAccess(auth.user.id, ids, auth.session?.hasElevatedPermission);
+      const isOwner = await access.asset.checkOwnerAccess(auth.user.id, ids, auth.session);
       const isAlbum = await access.asset.checkAlbumAccess(auth.user.id, ids.difference(isOwner));
       const isPartner = await access.asset.checkPartnerAccess(
         auth.user.id,
@@ -212,32 +212,32 @@ const checkOtherAccess = async (access: AccessRepository, request: OtherAccessRe
     }
 
     case Permission.AssetUpdate: {
-      return await access.asset.checkOwnerAccess(auth.user.id, ids, auth.session?.hasElevatedPermission);
+      return await access.asset.checkOwnerAccess(auth.user.id, ids, auth.session);
     }
 
     case Permission.AssetDelete: {
-      return await access.asset.checkOwnerAccess(auth.user.id, ids, auth.session?.hasElevatedPermission);
+      return await access.asset.checkOwnerAccess(auth.user.id, ids, auth.session);
     }
 
     case Permission.AssetCopy: {
-      return await access.asset.checkOwnerAccess(auth.user.id, ids, auth.session?.hasElevatedPermission);
+      return await access.asset.checkOwnerAccess(auth.user.id, ids, auth.session);
     }
 
     case Permission.AssetEditGet: {
-      return await access.asset.checkOwnerAccess(auth.user.id, ids, auth.session?.hasElevatedPermission);
+      return await access.asset.checkOwnerAccess(auth.user.id, ids, auth.session);
     }
 
     case Permission.AssetEditCreate: {
-      return await access.asset.checkOwnerAccess(auth.user.id, ids, auth.session?.hasElevatedPermission);
+      return await access.asset.checkOwnerAccess(auth.user.id, ids, auth.session);
     }
 
     case Permission.AssetEditDelete: {
-      return await access.asset.checkOwnerAccess(auth.user.id, ids, auth.session?.hasElevatedPermission);
+      return await access.asset.checkOwnerAccess(auth.user.id, ids, auth.session);
     }
 
     case Permission.AssetFileRead:
     case Permission.AssetFileDelete: {
-      return await access.assetFile.checkOwnerAccess(auth.user.id, ids, auth.session?.hasElevatedPermission);
+      return await access.assetFile.checkOwnerAccess(auth.user.id, ids, auth.session);
     }
 
     case Permission.AlbumRead: {

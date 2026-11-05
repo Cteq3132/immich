@@ -210,6 +210,7 @@ export type Album = Selectable<AlbumTable> & {
 export type AuthSession = {
   id: string;
   hasElevatedPermission: boolean;
+  isDecoy: boolean;
 };
 
 export type Partner = {
@@ -392,7 +393,7 @@ export const columns = {
   ],
   authUser: ['user.id', 'user.name', 'user.email', 'user.isAdmin', 'user.quotaUsageInBytes', 'user.quotaSizeInBytes'],
   authApiKey: ['api_key.id', 'api_key.permissions'],
-  authSession: ['session.id', 'session.updatedAt', 'session.pinExpiresAt', 'session.appVersion'],
+  authSession: ['session.id', 'session.updatedAt', 'session.pinExpiresAt', 'session.isDecoy', 'session.appVersion'],
   user: userColumns,
   user2: user2Columns,
   userPrefix: [
@@ -453,6 +454,7 @@ export const columns = {
     'asset.width',
     'asset.height',
     'asset.isEdited',
+    'asset.isDecoy',
   ],
   syncAlbumAsset: [
     'asset.id',

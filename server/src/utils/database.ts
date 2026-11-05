@@ -19,7 +19,7 @@ import {
 import { PostgresJSDialect } from 'kysely-postgres-js';
 import { jsonArrayFrom, jsonObjectFrom } from 'kysely/helpers/postgres';
 import { Notice, PostgresError } from 'postgres';
-import { LockableProperty, Person, columns, lockableProperties } from 'src/database.js';
+import { AuthSession, LockableProperty, Person, columns, lockableProperties } from 'src/database.js';
 import { DummyValue, GenerateSqlQueries } from 'src/decorators.js';
 import { AssetEditActionItem } from 'src/dtos/editing.dto.js';
 import {
@@ -338,6 +338,17 @@ export function hasTags<O>(qb: SelectQueryBuilder<DB, 'asset', O>, tagIds: strin
   );
 }
 
+export function withLockedAccess(
+  eb: ExpressionBuilder<DB, 'asset'>,
+  session?: Pick<AuthSession, 'hasElevatedPermission' | 'isDecoy'>,
+) {
+  if (!session?.hasElevatedPermission) {
+    return eb('asset.visibility', '!=', AssetVisibility.Locked);
+  }
+
+  return eb.or([eb('asset.visibility', '!=', AssetVisibility.Locked), eb('asset.isDecoy', '=', session.isDecoy)]);
+}
+
 export function withOwner(eb: ExpressionBuilder<DB, 'asset'>) {
   return jsonObjectFrom(eb.selectFrom('user').select(columns.user).whereRef('user.id', '=', 'asset.ownerId')).as(
     'owner',
@@ -445,6 +456,9 @@ export function searchAssetBuilderLegacy(kysely: Kysely<DB>, options: AssetSearc
       qb.where((eb) =>
         eb.or([eb('asset.visibility', '!=', AssetVisibility.Locked), eb('asset.ownerId', '=', options.viewingUserId!)]),
       ),
+    )
+    .where((eb) =>
+      eb.or([eb('asset.visibility', '!=', AssetVisibility.Locked), eb('asset.isDecoy', '=', !!options.isDecoy)]),
     )
     .$if(!!options.albumIds && options.albumIds.length > 0, (qb) => inAlbums(qb, options.albumIds!))
     .$if(!!options.tagIds && options.tagIds.length > 0, (qb) => hasTags(qb, options.tagIds!))
@@ -824,7 +838,10 @@ export function searchAssetBuilder(kysely: Kysely<DB>, options: AssetSearchBuild
       .$if(!!options.withExif, (qb) => qb.select(selectReturnedExifInfo))
       .$if(scopeGlobally, (qb) => qb.where(ownershipPredicate))
       .where((eb) =>
-        eb.or([eb('asset.visibility', '!=', AssetVisibility.Locked), eb('asset.ownerId', '=', scope.lockedOwnerId)]),
+        eb.or([
+          eb('asset.visibility', '!=', AssetVisibility.Locked),
+          eb.and([eb('asset.ownerId', '=', scope.lockedOwnerId), eb('asset.isDecoy', '=', !!scope.lockedIsDecoy)]),
+        ]),
       )
       .$if(!!(options.withFaces || options.withPeople), (qb) =>
         qb.select(withFacesAndPeople({ viewingUserId: scope.viewingUserId! })),

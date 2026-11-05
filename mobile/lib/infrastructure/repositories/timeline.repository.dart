@@ -343,9 +343,12 @@ class TimelineRepository extends DatabaseAccessor<Drift> with $TimelineRepositor
     joinLocal: true,
   );
 
-  TimelineQuery locked(String userId, GroupAssetsBy groupBy) => _remoteQueryBuilder(
+  TimelineQuery locked(String userId, bool isDecoy, GroupAssetsBy groupBy) => _remoteQueryBuilder(
     filter: (row) =>
-        row.deletedAt.isNull() & row.visibility.equalsValue(AssetVisibility.locked) & row.ownerId.equals(userId),
+        row.deletedAt.isNull() &
+        row.visibility.equalsValue(AssetVisibility.locked) &
+        row.ownerId.equals(userId) &
+        row.isDecoy.equals(isDecoy),
     origin: TimelineOrigin.lockedFolder,
     groupBy: groupBy,
   );

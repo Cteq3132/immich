@@ -43,6 +43,11 @@ class AuthApiRepository extends ApiRepository {
     }
   }
 
+  Future<bool> isDecoySession() async {
+    final status = await _apiService.authenticationApi.getAuthStatus();
+    return status?.isDecoy.orElse(null) ?? false;
+  }
+
   Future<void> setupPinCode(String pinCode) {
     return _apiService.authenticationApi.setupPinCode(PinCodeSetupDto(pinCode: pinCode));
   }

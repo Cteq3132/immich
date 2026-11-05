@@ -53,6 +53,9 @@ export class SessionTable {
   @Column({ type: 'timestamp with time zone', nullable: true })
   pinExpiresAt!: Timestamp | null;
 
+  @Column({ type: 'boolean', default: false })
+  isDecoy!: Generated<boolean>;
+
   @Column({ nullable: true, index: true })
   oauthSid!: string | null;
 

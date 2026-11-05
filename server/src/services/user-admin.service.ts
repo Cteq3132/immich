@@ -87,11 +87,13 @@ export class UserAdminService extends BaseService {
       dto.pinCode = await this.cryptoRepository.hashBcrypt(dto.pinCode, SALT_ROUNDS);
     }
 
+    const decoyPinCodeReset = dto.pinCode === undefined ? {} : { decoyPinCode: null };
+
     if (dto.storageLabel === '') {
       dto.storageLabel = null;
     }
 
-    const updatedUser = await this.userRepository.update(id, { ...dto, updatedAt: new Date() });
+    const updatedUser = await this.userRepository.update(id, { ...dto, ...decoyPinCodeReset, updatedAt: new Date() });
 
     return mapUserAdmin(updatedUser);
   }

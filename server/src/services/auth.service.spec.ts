@@ -363,6 +363,7 @@ describe(AuthService.name, () => {
         updatedAt: session.updatedAt,
         user: UserFactory.create(),
         pinExpiresAt: null,
+        isDecoy: false,
         appVersion: null,
         oauthSid: null,
       };
@@ -380,6 +381,7 @@ describe(AuthService.name, () => {
         session: {
           id: session.id,
           hasElevatedPermission: false,
+          isDecoy: false,
         },
       });
     });
@@ -530,6 +532,7 @@ describe(AuthService.name, () => {
         updatedAt: session.updatedAt,
         user: UserFactory.create(),
         pinExpiresAt: null,
+        isDecoy: false,
         appVersion: null,
         oauthSid: null,
       };
@@ -547,6 +550,7 @@ describe(AuthService.name, () => {
         session: {
           id: session.id,
           hasElevatedPermission: false,
+          isDecoy: false,
         },
       });
     });
@@ -559,6 +563,7 @@ describe(AuthService.name, () => {
         user: UserFactory.create(),
         isPendingSyncReset: false,
         pinExpiresAt: null,
+        isDecoy: false,
         appVersion: null,
         oauthSid: null,
       };
@@ -582,6 +587,7 @@ describe(AuthService.name, () => {
         user: UserFactory.create(),
         isPendingSyncReset: false,
         pinExpiresAt: null,
+        isDecoy: false,
         appVersion: null,
         oauthSid: null,
       };
@@ -1586,7 +1592,7 @@ describe(AuthService.name, () => {
       const auth = AuthFactory.create(user);
       const dto = { pinCode: '123456' };
 
-      mocks.user.getForPinCode.mockResolvedValue({ pinCode: null, password: '' });
+      mocks.user.getForPinCode.mockResolvedValue({ pinCode: null, decoyPinCode: null, password: '' });
       mocks.user.update.mockResolvedValue(user);
 
       await sut.setupPinCode(auth, dto);
@@ -1600,7 +1606,7 @@ describe(AuthService.name, () => {
       const user = UserFactory.create();
       const auth = AuthFactory.create(user);
 
-      mocks.user.getForPinCode.mockResolvedValue({ pinCode: '123456 (hashed)', password: '' });
+      mocks.user.getForPinCode.mockResolvedValue({ pinCode: '123456 (hashed)', decoyPinCode: null, password: '' });
 
       await expect(sut.setupPinCode(auth, { pinCode: '123456' })).rejects.toThrow('User already has a PIN code');
     });
@@ -1612,7 +1618,7 @@ describe(AuthService.name, () => {
       const auth = AuthFactory.create(user);
       const dto = { pinCode: '123456', newPinCode: '012345' };
 
-      mocks.user.getForPinCode.mockResolvedValue({ pinCode: '123456 (hashed)', password: '' });
+      mocks.user.getForPinCode.mockResolvedValue({ pinCode: '123456 (hashed)', decoyPinCode: null, password: '' });
       mocks.user.update.mockResolvedValue(user);
       mocks.crypto.compareBcrypt.mockImplementation((a, b) => `${a} (hashed)` === b);
 
@@ -1624,7 +1630,7 @@ describe(AuthService.name, () => {
 
     it('should fail if the PIN code does not match', async () => {
       const user = UserFactory.create();
-      mocks.user.getForPinCode.mockResolvedValue({ pinCode: '123456 (hashed)', password: '' });
+      mocks.user.getForPinCode.mockResolvedValue({ pinCode: '123456 (hashed)', decoyPinCode: null, password: '' });
       mocks.crypto.compareBcrypt.mockImplementation((a, b) => `${a} (hashed)` === b);
 
       await expect(
@@ -1633,24 +1639,181 @@ describe(AuthService.name, () => {
     });
   });
 
+  describe('changePinCode with a decoy PIN code', () => {
+    it('should change the decoy PIN code when the decoy PIN code is provided', async () => {
+      const user = UserFactory.create();
+      mocks.user.getForPinCode.mockResolvedValue({
+        pinCode: '123456 (hashed)',
+        decoyPinCode: '654321 (hashed)',
+        password: '',
+      });
+      mocks.user.update.mockResolvedValue(user);
+      mocks.crypto.compareBcrypt.mockImplementation((a, b) => `${a} (hashed)` === b);
+
+      await sut.changePinCode(AuthFactory.create(user), { pinCode: '654321', newPinCode: '111111' });
+
+      expect(mocks.user.update).toHaveBeenCalledWith(user.id, { decoyPinCode: '111111 (hashed)' });
+    });
+
+    it('should not allow the PIN code to match the decoy PIN code', async () => {
+      const user = UserFactory.create();
+      mocks.user.getForPinCode.mockResolvedValue({
+        pinCode: '123456 (hashed)',
+        decoyPinCode: '654321 (hashed)',
+        password: '',
+      });
+      mocks.crypto.compareBcrypt.mockImplementation((a, b) => `${a} (hashed)` === b);
+
+      await expect(
+        sut.changePinCode(AuthFactory.create(user), { pinCode: '123456', newPinCode: '654321' }),
+      ).rejects.toThrow('This PIN code cannot be used');
+      expect(mocks.user.update).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('setupDecoyPinCode', () => {
+    it('should set the decoy PIN code', async () => {
+      const user = UserFactory.create();
+      mocks.user.getForPinCode.mockResolvedValue({ pinCode: '123456 (hashed)', decoyPinCode: null, password: '' });
+      mocks.user.update.mockResolvedValue(user);
+      mocks.session.lockAll.mockResolvedValue(void 0);
+      mocks.crypto.compareBcrypt.mockImplementation((a, b) => `${a} (hashed)` === b);
+
+      await sut.setupDecoyPinCode(AuthFactory.create(user), { pinCode: '123456', decoyPinCode: '654321' });
+
+      expect(mocks.user.update).toHaveBeenCalledWith(user.id, { decoyPinCode: '654321 (hashed)' });
+      expect(mocks.session.lockAll).toHaveBeenCalledWith(user.id);
+    });
+
+    it('should require the PIN code', async () => {
+      const user = UserFactory.create();
+      mocks.user.getForPinCode.mockResolvedValue({ pinCode: '123456 (hashed)', decoyPinCode: null, password: '' });
+      mocks.crypto.compareBcrypt.mockImplementation((a, b) => `${a} (hashed)` === b);
+
+      await expect(
+        sut.setupDecoyPinCode(AuthFactory.create(user), { pinCode: '000000', decoyPinCode: '654321' }),
+      ).rejects.toThrow('Wrong PIN code');
+      expect(mocks.user.update).not.toHaveBeenCalled();
+    });
+
+    it('should not allow the decoy PIN code to match the PIN code', async () => {
+      const user = UserFactory.create();
+      mocks.user.getForPinCode.mockResolvedValue({ pinCode: '123456 (hashed)', decoyPinCode: null, password: '' });
+      mocks.crypto.compareBcrypt.mockImplementation((a, b) => `${a} (hashed)` === b);
+
+      await expect(
+        sut.setupDecoyPinCode(AuthFactory.create(user), { pinCode: '123456', decoyPinCode: '123456' }),
+      ).rejects.toThrow('This PIN code cannot be used');
+      expect(mocks.user.update).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('resetDecoyPinCode', () => {
+    it('should remove the decoy PIN code', async () => {
+      const user = UserFactory.create();
+      mocks.user.getForPinCode.mockResolvedValue({
+        pinCode: '123456 (hashed)',
+        decoyPinCode: '654321 (hashed)',
+        password: '',
+      });
+      mocks.user.update.mockResolvedValue(user);
+      mocks.session.lockAll.mockResolvedValue(void 0);
+      mocks.crypto.compareBcrypt.mockImplementation((a, b) => `${a} (hashed)` === b);
+
+      await sut.resetDecoyPinCode(AuthFactory.create(user), { pinCode: '123456' });
+
+      expect(mocks.user.update).toHaveBeenCalledWith(user.id, { decoyPinCode: null });
+      expect(mocks.session.lockAll).toHaveBeenCalledWith(user.id);
+    });
+
+    it('should not accept the decoy PIN code', async () => {
+      const user = UserFactory.create();
+      mocks.user.getForPinCode.mockResolvedValue({
+        pinCode: '123456 (hashed)',
+        decoyPinCode: '654321 (hashed)',
+        password: '',
+      });
+      mocks.crypto.compareBcrypt.mockImplementation((a, b) => `${a} (hashed)` === b);
+
+      await expect(sut.resetDecoyPinCode(AuthFactory.create(user), { pinCode: '654321' })).rejects.toThrow(
+        'Wrong PIN code',
+      );
+      expect(mocks.user.update).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('unlockSession', () => {
+    it('should unlock the locked folder with the PIN code', async () => {
+      const user = UserFactory.create();
+      const auth = AuthFactory.from(user).session().build();
+      mocks.user.getForPinCode.mockResolvedValue({
+        pinCode: '123456 (hashed)',
+        decoyPinCode: '654321 (hashed)',
+        password: '',
+      });
+      mocks.session.update.mockResolvedValue(SessionFactory.create());
+      mocks.crypto.compareBcrypt.mockImplementation((a, b) => `${a} (hashed)` === b);
+
+      await sut.unlockSession(auth, { pinCode: '123456' });
+
+      expect(mocks.session.update).toHaveBeenCalledWith(auth.session!.id, {
+        pinExpiresAt: expect.any(Date),
+        isDecoy: false,
+      });
+    });
+
+    it('should unlock the decoy locked folder with the decoy PIN code', async () => {
+      const user = UserFactory.create();
+      const auth = AuthFactory.from(user).session().build();
+      mocks.user.getForPinCode.mockResolvedValue({
+        pinCode: '123456 (hashed)',
+        decoyPinCode: '654321 (hashed)',
+        password: '',
+      });
+      mocks.session.update.mockResolvedValue(SessionFactory.create());
+      mocks.crypto.compareBcrypt.mockImplementation((a, b) => `${a} (hashed)` === b);
+
+      await sut.unlockSession(auth, { pinCode: '654321' });
+
+      expect(mocks.session.update).toHaveBeenCalledWith(auth.session!.id, {
+        pinExpiresAt: expect.any(Date),
+        isDecoy: true,
+      });
+    });
+
+    it('should reject a wrong PIN code', async () => {
+      const user = UserFactory.create();
+      const auth = AuthFactory.from(user).session().build();
+      mocks.user.getForPinCode.mockResolvedValue({
+        pinCode: '123456 (hashed)',
+        decoyPinCode: '654321 (hashed)',
+        password: '',
+      });
+      mocks.crypto.compareBcrypt.mockImplementation((a, b) => `${a} (hashed)` === b);
+
+      await expect(sut.unlockSession(auth, { pinCode: '000000' })).rejects.toThrow('Wrong PIN code');
+      expect(mocks.session.update).not.toHaveBeenCalled();
+    });
+  });
+
   describe('resetPinCode', () => {
     it('should reset the PIN code', async () => {
       const currentSession = SessionFactory.create();
       const user = UserFactory.create();
-      mocks.user.getForPinCode.mockResolvedValue({ pinCode: '123456 (hashed)', password: '' });
+      mocks.user.getForPinCode.mockResolvedValue({ pinCode: '123456 (hashed)', decoyPinCode: null, password: '' });
       mocks.crypto.compareBcrypt.mockImplementation((a, b) => `${a} (hashed)` === b);
       mocks.session.lockAll.mockResolvedValue(void 0);
       mocks.session.update.mockResolvedValue(currentSession);
 
       await sut.resetPinCode(AuthFactory.create(user), { pinCode: '123456' });
 
-      expect(mocks.user.update).toHaveBeenCalledWith(user.id, { pinCode: null });
+      expect(mocks.user.update).toHaveBeenCalledWith(user.id, { pinCode: null, decoyPinCode: null });
       expect(mocks.session.lockAll).toHaveBeenCalledWith(user.id);
     });
 
     it('should throw if the PIN code does not match', async () => {
       const user = UserFactory.create();
-      mocks.user.getForPinCode.mockResolvedValue({ pinCode: '123456 (hashed)', password: '' });
+      mocks.user.getForPinCode.mockResolvedValue({ pinCode: '123456 (hashed)', decoyPinCode: null, password: '' });
       mocks.crypto.compareBcrypt.mockImplementation((a, b) => `${a} (hashed)` === b);
 
       await expect(sut.resetPinCode(AuthFactory.create(user), { pinCode: '000000' })).rejects.toThrow('Wrong PIN code');

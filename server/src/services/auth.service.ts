@@ -8,6 +8,8 @@ import {
   AuthDto,
   AuthStatusResponseDto,
   ChangePasswordDto,
+  DecoyPinCodeResetDto,
+  DecoyPinCodeSetupDto,
   LoginCredentialDto,
   LogoutResponseDto,
   OAuthBackchannelLogoutDto,
@@ -167,16 +169,53 @@ export class AuthService extends BaseService {
     const user = await this.userRepository.getForPinCode(auth.user.id);
     this.validatePinCode(user, dto);
 
-    await this.userRepository.update(auth.user.id, { pinCode: null });
+    await this.userRepository.update(auth.user.id, { pinCode: null, decoyPinCode: null });
     await this.sessionRepository.lockAll(auth.user.id);
   }
 
   async changePinCode(auth: AuthDto, dto: PinCodeChangeDto) {
     const user = await this.userRepository.getForPinCode(auth.user.id);
+
+    if (!dto.password && this.isDecoyPinCode(user, dto.pinCode)) {
+      this.requireUnusedPinCode(dto.newPinCode, user.pinCode);
+      const hashed = await this.cryptoRepository.hashBcrypt(dto.newPinCode, SALT_ROUNDS);
+      await this.userRepository.update(auth.user.id, { decoyPinCode: hashed });
+      return;
+    }
+
     this.validatePinCode(user, dto);
+    this.requireUnusedPinCode(dto.newPinCode, user.decoyPinCode);
 
     const hashed = await this.cryptoRepository.hashBcrypt(dto.newPinCode, SALT_ROUNDS);
     await this.userRepository.update(auth.user.id, { pinCode: hashed });
+  }
+
+  async setupDecoyPinCode(auth: AuthDto, dto: DecoyPinCodeSetupDto) {
+    const user = await this.userRepository.getForPinCode(auth.user.id);
+    this.validatePinCode(user, { pinCode: dto.pinCode });
+    this.requireUnusedPinCode(dto.decoyPinCode, user.pinCode);
+
+    const hashed = await this.cryptoRepository.hashBcrypt(dto.decoyPinCode, SALT_ROUNDS);
+    await this.userRepository.update(auth.user.id, { decoyPinCode: hashed });
+    await this.sessionRepository.lockAll(auth.user.id);
+  }
+
+  async resetDecoyPinCode(auth: AuthDto, dto: DecoyPinCodeResetDto) {
+    const user = await this.userRepository.getForPinCode(auth.user.id);
+    this.validatePinCode(user, dto);
+
+    await this.userRepository.update(auth.user.id, { decoyPinCode: null });
+    await this.sessionRepository.lockAll(auth.user.id);
+  }
+
+  private isDecoyPinCode(user: { decoyPinCode: string | null }, pinCode?: string) {
+    return !!pinCode && this.validateSecret(pinCode, user.decoyPinCode);
+  }
+
+  private requireUnusedPinCode(pinCode: string, otherPinCodeHash: string | null) {
+    if (this.validateSecret(pinCode, otherPinCodeHash)) {
+      throw new BadRequestException('This PIN code cannot be used');
+    }
   }
 
   private validatePinCode(
@@ -587,6 +626,7 @@ export class AuthService extends BaseService {
         session: {
           id: session.id,
           hasElevatedPermission,
+          isDecoy: session.isDecoy,
         },
       };
     }
@@ -600,10 +640,14 @@ export class AuthService extends BaseService {
     }
 
     const user = await this.userRepository.getForPinCode(auth.user.id);
-    this.validatePinCode(user, { pinCode: dto.pinCode });
+    const isDecoy = this.isDecoyPinCode(user, dto.pinCode);
+    if (!isDecoy) {
+      this.validatePinCode(user, { pinCode: dto.pinCode });
+    }
 
     await this.sessionRepository.update(auth.session.id, {
       pinExpiresAt: DateTime.now().plus({ minutes: 15 }).toJSDate(),
+      isDecoy,
     });
   }
 
@@ -674,6 +718,7 @@ export class AuthService extends BaseService {
       pinCode: !!user.pinCode,
       password: !!user.password,
       isElevated: !!auth.session?.hasElevatedPermission,
+      isDecoy: !!auth.session?.hasElevatedPermission && auth.session.isDecoy,
       expiresAt: session?.expiresAt?.toISOString(),
       pinExpiresAt: session?.pinExpiresAt?.toISOString(),
     };

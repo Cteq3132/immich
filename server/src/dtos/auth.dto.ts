@@ -161,6 +161,19 @@ const PinCodeChangeSchema = PinCodeResetSchema.extend({
   newPinCode: z.string().regex(pinCodeRegex).describe('New PIN code (4-6 digits)'),
 }).meta({ id: 'PinCodeChangeDto' });
 
+const DecoyPinCodeSetupSchema = z
+  .object({
+    pinCode: z.string().regex(pinCodeRegex).describe('Current PIN code').meta({ example: '123456' }),
+    decoyPinCode: z
+      .string()
+      .regex(pinCodeRegex)
+      .describe('Decoy PIN code, opening a separate locked folder')
+      .meta({ example: '654321' }),
+  })
+  .meta({ id: 'DecoyPinCodeSetupDto' });
+
+const DecoyPinCodeResetSchema = PinCodeResetSchema.meta({ id: 'DecoyPinCodeResetDto' });
+
 const ValidateAccessTokenResponseSchema = z
   .object({
     authStatus: z.boolean().describe('Authentication status'),
@@ -198,6 +211,7 @@ const AuthStatusResponseSchema = z
     pinCode: z.boolean().describe('Has PIN code set'),
     password: z.boolean().describe('Has password set'),
     isElevated: z.boolean().describe('Is elevated session'),
+    isDecoy: z.boolean().optional().describe('Is the session elevated with the decoy PIN code'),
     expiresAt: z.string().optional().describe('Session expiration date'),
     pinExpiresAt: z.string().optional().describe('PIN expiration date'),
   })
@@ -212,6 +226,8 @@ export class PinCodeSetupDto extends createZodDto(PinCodeSetupSchema) {}
 export class PinCodeResetDto extends createZodDto(PinCodeResetSchema) {}
 export class SessionUnlockDto extends createZodDto(SessionUnlockSchema) {}
 export class PinCodeChangeDto extends createZodDto(PinCodeChangeSchema) {}
+export class DecoyPinCodeSetupDto extends createZodDto(DecoyPinCodeSetupSchema) {}
+export class DecoyPinCodeResetDto extends createZodDto(DecoyPinCodeResetSchema) {}
 export class ValidateAccessTokenResponseDto extends createZodDto(ValidateAccessTokenResponseSchema) {}
 export class OAuthCallbackDto extends createZodDto(OAuthCallbackSchema) {}
 export class OAuthConfigDto extends createZodDto(OAuthConfigSchema) {}

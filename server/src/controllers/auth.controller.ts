@@ -8,6 +8,8 @@ import {
   LoginCredentialDto,
   LoginResponseDto,
   LogoutResponseDto,
+  DecoyPinCodeResetDto,
+  DecoyPinCodeSetupDto,
   PinCodeChangeDto,
   PinCodeResetDto,
   PinCodeSetupDto,
@@ -154,6 +156,31 @@ export class AuthController {
   })
   async resetPinCode(@Auth() auth: AuthDto, @Body() dto: PinCodeResetDto): Promise<void> {
     return this.service.resetPinCode(auth, dto);
+  }
+
+  @Put('pin-code/decoy')
+  @Authenticated({ permission: Permission.PinCodeUpdate })
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @Endpoint({
+    summary: 'Setup decoy pin code',
+    description:
+      'Set or replace the decoy pin code of the current user. Unlocking with the decoy pin code opens a separate locked folder.',
+    history: new HistoryBuilder().added('v3.4.0').alpha('v3.4.0'),
+  })
+  async setupDecoyPinCode(@Auth() auth: AuthDto, @Body() dto: DecoyPinCodeSetupDto): Promise<void> {
+    return this.service.setupDecoyPinCode(auth, dto);
+  }
+
+  @Delete('pin-code/decoy')
+  @Authenticated({ permission: Permission.PinCodeDelete })
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @Endpoint({
+    summary: 'Reset decoy pin code',
+    description: 'Remove the decoy pin code of the current user.',
+    history: new HistoryBuilder().added('v3.4.0').alpha('v3.4.0'),
+  })
+  async resetDecoyPinCode(@Auth() auth: AuthDto, @Body() dto: DecoyPinCodeResetDto): Promise<void> {
+    return this.service.resetDecoyPinCode(auth, dto);
   }
 
   @Post('session/unlock')

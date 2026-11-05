@@ -21,6 +21,7 @@ export class UserFactory {
       email: 'test@immich.cloud',
       password: '',
       pinCode: null,
+      decoyPinCode: null,
       createdAt: newDate(),
       profileImagePath: '',
       isAdmin: false,

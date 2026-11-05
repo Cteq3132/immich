@@ -132,7 +132,11 @@ export class SessionRepository {
 
   @GenerateSql({ params: [DummyValue.UUID] })
   async lockAll(userId: string) {
-    await this.db.updateTable('session').set({ pinExpiresAt: null }).where('userId', '=', userId).execute();
+    await this.db
+      .updateTable('session')
+      .set({ pinExpiresAt: null, isDecoy: false })
+      .where('userId', '=', userId)
+      .execute();
   }
 
   @GenerateSql({ params: [DummyValue.UUID] })

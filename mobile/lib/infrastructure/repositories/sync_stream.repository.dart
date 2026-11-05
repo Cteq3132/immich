@@ -305,6 +305,7 @@ class SyncStreamRepository extends DatabaseAccessor<Drift> with $SyncStreamRepos
             width: Value(asset.width),
             height: Value(asset.height),
             isEdited: Value(asset.isEdited),
+            isDecoy: Value(asset.isDecoy.orElse(null) ?? false),
           );
 
           final insert = companion.copyWith(id: Value(asset.id)).toColumns(true);

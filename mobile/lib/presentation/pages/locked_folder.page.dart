@@ -52,6 +52,11 @@ class _LockedFolderPageState extends ConsumerState<LockedFolderPage> with Widget
 
   @override
   Widget build(BuildContext context) {
+    final isDecoy = ref.watch(lockedFolderIsDecoyProvider).valueOrNull;
+    if (isDecoy == null) {
+      return const SizedBox();
+    }
+
     return ProviderScope(
       overrides: [
         timelineServiceProvider.overrideWith((ref) {
@@ -60,7 +65,7 @@ class _LockedFolderPageState extends ConsumerState<LockedFolderPage> with Widget
             throw Exception('User must be logged in to access locked folder');
           }
 
-          final timelineService = ref.watch(timelineFactoryProvider).lockedFolder(user.id);
+          final timelineService = ref.watch(timelineFactoryProvider).lockedFolder(user.id, isDecoy);
           ref.onDispose(timelineService.dispose);
           return timelineService;
         }),

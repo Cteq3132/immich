@@ -58,6 +58,8 @@ class RemoteAssetEntity extends Table with DriftDefaultsMixin, AssetEntityMixin 
 
   BoolColumn get isEdited => boolean().withDefault(const Constant(false))();
 
+  BoolColumn get isDecoy => boolean().withDefault(const Constant(false))();
+
   @override
   Set<Column> get primaryKey => {id};
 }

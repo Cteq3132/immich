@@ -211,7 +211,9 @@ export class DuplicateService extends BaseService {
         await this.jobRepository.queueAll(idsToKeep.map((id) => ({ name: JobName.SidecarWrite, data: { id } })));
       }
 
-      await this.assetRepository.updateAll(idsToKeep, { duplicateId: null, ...assetUpdate });
+      const decoyUpdate =
+        assetUpdate.visibility === AssetVisibility.Locked ? { isDecoy: !!auth.session?.isDecoy } : {};
+      await this.assetRepository.updateAll(idsToKeep, { duplicateId: null, ...assetUpdate, ...decoyUpdate });
     } else if (idsToKeep.length > 0) {
       await this.assetRepository.updateAll(idsToKeep, { duplicateId: null });
     }
